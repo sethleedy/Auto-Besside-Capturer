@@ -2,9 +2,18 @@
 
 # Called by inotifywait
 
-# Process wep.cap & wpa.cap files into upload.cap
-# Upload.Cap needs to be moved into upload directory and moved so it does not overwrite existing files with same name
-# After all this, I'll manually upload the upload.cap files into a cracking website.
+# Process wep.cap & wpa.cap files into upload.cap.
+# Upload.Cap needs to be moved into upload directory and moved so it does not overwrite existing files with same name.
+
+# After all this,
+# 1] The script will execute all bash files in the caps/upload/ directory. These scripts are for uploading the new .cap files to website for processing or whatever.
+# 1.1] After executing all the scripts, the .cap files will move to the archive directory for later manual upload, if needed.
+# 2] OR I'll manually upload the upload.cap files into a cracking website from the archive directory.
+
+
+# User:Group to chown the .cap files as. Don't want to keep them root.
+chUser="seth"
+chGroup="seth"
 
 
 # Test for help
@@ -16,13 +25,26 @@ function display_help {
 
 }
 
+function do_conversion() {
+
+	$besside_file . upload/upload.new
+	new_date=$(date); new_date=$(echo "${new_date}" | tr -s ':' '_')
+	mv -b --backup=t upload/upload.new upload/"upload-$new_date.cap"
+
+	rm_command=$(loc_file "rm")
+	$rm_command -f *.cap
+	$rm_command -f *.cap.~*
+
+	chown -R $chUser:$chGroup *
+
+}
+
 if [ "$1" != "" ]; then
 	if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$1" != "${1/:/}" ]; then
 		display_help
 		exit
 	fi
 fi
-
 
 # use my custom functions
 echo "Uni Funct Online ?: $unisystem_functions_online"
@@ -48,25 +70,10 @@ cd_current_script_dir
 
 besside_file=$(loc_file "besside-ng-crawler")
 
-function do_conversion() {
-
-	$besside_file . upload/upload.new
-	new_date=$(date); new_date=$(echo "${new_date}" | tr -s ':' '_')
-	mv -b --backup=t upload/upload.new upload/"upload-$new_date.cap"
-
-	rm_command=$(loc_file "rm")
-	$rm_command -f *.cap
-	$rm_command -f *.cap.~*
-
-	chown -R seth:seth *
-
-}
-
-
 if [ "$besside_file" != "" ]; then
 	# Do existing .cap files first
 	#if ls *.cap & > /dev/null; then
-	if [[ -n $(shopt -s nullglob; echo *.cap) ]]; then
+	if [[ -n $(shopt -s nullglob; echo *.cap) ]]; then # explain this line ??
 
 		# Then convert
 		do_conversion
@@ -75,7 +82,8 @@ if [ "$besside_file" != "" ]; then
 
 	if [ "$1" == "-watch" ]; then
 		# Now watch for more
-		inotifywait -m . --format '%:e %f' -e moved_to -e close_write |
+		inotifywait_file=$(loc_file "inotifywait")
+		$inotifywait -m . --format '%:e %f' -e moved_to -e close_write |
 			while read file; do
 				#echo "OUTPUT: $read - $file"
 
@@ -83,8 +91,9 @@ if [ "$besside_file" != "" ]; then
 
 					do_conversion
 
-					play_wav "default_tone"
-					$speak "A capture is ready for uploading." &
+					# Notify the user about this
+					#play_wav "default_tone"
+					#$speak "A capture is ready for uploading." &
 				fi
 			done
 	fi
