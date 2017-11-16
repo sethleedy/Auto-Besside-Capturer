@@ -1,0 +1,21 @@
+# SSID              | KEY                                    | BSSID             | MAC filter
+23121141            | Got WPA handshake                      | b4:c7:99:7c:e8:b2 | 
+TGT                 | Got WPA handshake                      | 58:6d:8f:08:63:6f | 
+Internet            | Got WPA handshake                      | 1c:ab:c0:96:2b:08 | 
+Jhopkins_091997     | Got WPA handshake                      | 6c:ca:08:98:3a:27 | 
+InspireRes          | Got WPA handshake                      | b4:75:0e:68:32:8d | 
+NETGEAR82           | Got WPA handshake                      | a0:04:60:2d:83:7b | 
+WVHLVendor          | Got WPA handshake                      | 94:d4:69:f9:c4:e2 | 
+WVHLGuest           | Got WPA handshake                      | 94:d4:69:f9:c4:e1 | 
+WVHLGuest           | Got WPA handshake                      | d4:2c:44:ea:90:a1 | 
+WVHLGuest           | Got WPA handshake                      | d4:2c:44:ea:8a:a1 | 
+WVHLGuest           | Got WPA handshake                      | 94:d4:69:f9:71:61 | 
+private1            | Got WPA handshake                      | 00:16:01:16:4a:b4 | 
+NETGEAR77           | Got WPA handshake                      | dc:ef:09:d9:64:fe | 
+belkin.c9f          | Got WPA handshake                      | ec:1a:59:09:cc:9f | 
+Grim                | Got WPA handshake                      | c0:ff:d4:8a:c9:c1 | 
+Linksys00497        | Got WPA handshake                      | c0:56:27:32:18:e0 | 
+CenturyLink9062     | Got WPA handshake                      | 92:ef:68:ac:43:5c | 
+LINDAM-PC_Network2  | Got WPA handshake                      | a0:21:b7:7f:23:eb | 
+Clothing Warehouse  | Got WPA handshake                      | 00:24:a5:f5:30:0a | 
+Joni’s iPhone     | Got WPA handshake                      | f6:61:9d:a4:ec:91 | 
