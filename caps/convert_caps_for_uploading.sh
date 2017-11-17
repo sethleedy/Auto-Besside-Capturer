@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Called by inotifywait
 
@@ -25,19 +25,26 @@ function display_help {
 
 }
 
+# Convert the .cap capture files into something more usable for uploading to websites.
 function do_conversion() {
 
 	$besside_file . upload/upload.new
 	new_date=$(date); new_date=$(echo "${new_date}" | tr -s ':' '_')
 	mv -b --backup=t upload/upload.new upload/"upload-$new_date.cap"
 
+	# Remove the processed files. Compiled data is now in a single .cap file in the upload directory.
 	rm_command=$(loc_file "rm")
 	$rm_command -f *.cap
 	$rm_command -f *.cap.~*
 
-	chown -R $chUser:$chGroup *
+}
+
+# Auto upload the converted .cap files to websites via purpose built scripts in the upload directory. Sites like http://wpa-sec.stanev.org
+function do_upload() {
+
 
 }
+
 
 if [ "$1" != "" ]; then
 	if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$1" != "${1/:/}" ]; then
@@ -78,6 +85,12 @@ if [ "$besside_file" != "" ]; then
 		# Then convert
 		do_conversion
 
+		# After conversion, auto upload to website via the scripts within the upload directory
+		do_upload
+
+		# Make sure all these newly created files are not root owned.
+		chown -R $chUser:$chGroup *
+
 	fi
 
 	if [ "$1" == "-watch" ]; then
@@ -90,6 +103,12 @@ if [ "$besside_file" != "" ]; then
 				if substring "upload.cap" "$file" || substring "wep.cap" "$file" || substring "wpa.cap" "$file" ; then
 
 					do_conversion
+
+					# After conversion, auto upload to website via the scripts within the upload directory
+					do_upload
+
+					# Make sure all these newly created files are not root owned.
+					chown -R $chUser:$chGroup *
 
 					# Notify the user about this
 					#play_wav "default_tone"
