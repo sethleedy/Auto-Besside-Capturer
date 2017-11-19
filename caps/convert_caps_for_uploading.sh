@@ -20,9 +20,9 @@ source "../echoColours.sh"
 
 # Test for help
 function display_help {
-	echo "Help:"
-	echo $0" optional arguments,"
-	echo "You can use the argument '$0 -watch' to keep watch for more .cap files(program will not exit) to process automatically"
+	shw_info "Help:"
+	shw_norm $0" optional arguments,"
+	shw_norm "You can use the argument '$0 --watch' to keep watch for more .cap files(program will not exit) to process automatically"
 	echo ""
 
 }
@@ -30,7 +30,9 @@ function display_help {
 # Convert the .cap capture files into something more usable for uploading to websites.
 function do_conversion() {
 
-	$besside_file . upload/upload.new
+	shw_grey "Cleaning and converting .cap files to format used by web."
+
+	$besside_file . upload/upload.new >/dev/null
 	new_date=$(date); new_date=$(echo "${new_date}" | tr -s ':' '_')
 	mv -b --backup=t upload/upload.new upload/"upload-$new_date.cap"
 
@@ -46,24 +48,42 @@ function do_upload() {
 
 	# Insert code here to upload to a website.
 
+	# If we encounter an upload error in the modules(like wpa-sec.stan.org.sh), then do not delete the .cap files to upload
+	upload_error=false
+
 	# Loop through the .sh files to execute them.
-	# Now execute them in AlphNumeric order. Eg: install1.sh, install2.sh, install3.sh
+	# Now execute them in AlphNumeric order. Eg: upload1.sh, upload2.sh, upload3.sh
 		for fname in $(ls upload/*.sh | sort -n); do # If no files are present, the loop will not be entered.
 		
 			# Load the functions within the files
 			shw_grey "Sourcing script $fname"
-			source "domain_scripts/$fname"
+			source "$fname"
 			
 			# Execute the expected functions after sourcing.
 				# Each time a new file is sourced, it should replace the previous function stored by the same name.
 			type start_exec &> /dev/null # Is the function live or present ?
 			result=$?
 			if [ $result -eq 0 ]; then # If so,
-				shw_grey "Executing $fname"
-				start_exec # execute starting function in the sourced file. Always "start_exec()".
+				shw_grey "Executing $fname function start_exec()"
+				start_exec # execute starting function in the sourced file. Always "function start_exec(){}".
+				if [ "$?" -ne 0 ]; then
+					shw_warn "Found error code from upload module"
+					upload_error=true
+				fi
 			fi
 			
+			# Remove the function entry so we do not repeat the function on the next loop
+			unset -f start_exec
 		done
+	
+	# If it uploaded ok, rm the file
+	# What does curl respond with if fail ? Can we also look at the response output.
+	if [ "$upload_error" == false ]; then
+		shw_grey "Removing .cap files from upload directory"
+		rm_command=$(loc_file "rm")
+		$rm_command -f upload/*.cap
+	fi
+
 }
 
 
@@ -74,29 +94,32 @@ if [ "$1" != "" ]; then
 	fi
 fi
 
-# use my custom functions
-echo "Uni Funct Online ?: $unisystem_functions_online"
+# use my custom functions within UNI Functions
 if [ "$unisystem_functions_online" == "false" ] || [ "$unisystem_functions_online" == "" ]; then
 	uni_functions_paths=$(../find_up.sh . -name "uni_functions.sh")
+	#echo "UNI Functions Path2: $uni_functions_paths"
 
 	test_true="false"
-	for test_paths in $uni_functions_paths # note that $uni_functions_paths must NOT be quoted here!
+	for test_paths in "$uni_functions_paths"
 	do
 		source "$test_paths" 2>/dev/null
 		if [ "$?" -eq 0 ]; then
 			test_true="true"
+			shw_grey "UNI Functions Loaded: $test_paths"
 			break
 		fi
 	done
 	if [ "$test_true" == "false" ]; then
-		echo "Could not source the Uni System Functions (uni_functions.sh)"
+		shw_err "Could not locate, to source, the Uni System Functions file (uni_functions.sh)"
 		exit
 	fi
 fi
 
 cd_current_script_dir
 
-besside_file=$(loc_file "besside-ng-crawler")
+if [ "$besside_file" == "" ]; then
+	besside_file=$(loc_file "besside-ng-crawler")
+fi
 
 if [ "$besside_file" != "" ]; then
 	# Do existing .cap files first
@@ -114,7 +137,7 @@ if [ "$besside_file" != "" ]; then
 
 	fi
 
-	if [ "$1" == "-watch" ]; then
+	if [ "$1" == "--watch" ]; then
 		# Now watch for more
 		inotifywait_file=$(loc_file "inotifywait")
 		$inotifywait -m . --format '%:e %f' -e moved_to -e close_write |
@@ -138,7 +161,7 @@ if [ "$besside_file" != "" ]; then
 			done
 	fi
 else
-	echo "Cannot locate tool besside-ng-crawler. Install it to continue."
+	shw_err "Cannot locate tool besside-ng-crawler. Install it to continue."
 fi
 
 exit 0

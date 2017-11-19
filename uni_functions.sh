@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Deposit the "find_up.sh" script in the directory or in a system path.
 # Use this snippet of code to access the Uni_Functions.sh,
