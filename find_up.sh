@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Examples:
 #	find_up.sh some_dir -iname "foo*bar" -execdir pwd \;

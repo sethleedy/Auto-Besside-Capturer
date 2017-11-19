@@ -9,48 +9,49 @@ clear
 # Some Vars
 crack_ssid="$1"
 
+# Load some colour terminal functions
+source "echoColours.sh"
+
+
 # Test for help
 function display_help {
-	echo "Help:"
-	echo $0" optional arguments,"
-	echo $0" <besside id> to crack only or '' or nothing, to crack all. BESSIDE must contain the colon separators."
-	echo $0" '' <WiFi Device> to use for monitoring."
-	echo $0" '' <WiFi Device> <Monitoring Device> in case it does not detect the device for monitoring correctly."
+	shw_info "Help:"
+	shw_norm $0" optional arguments,"
+	shw_norm $0" <besside id> to crack only or '' or nothing, to crack all. BESSIDE must contain the colon separators."
+	shw_norm $0" '' <WiFi Device> to use for monitoring."
+	shw_norm $0" '' <WiFi Device> <Monitoring Device> in case it does not detect the device for monitoring correctly."
 	echo ""
-	echo "If WiFi device not specified, defaults to wlan1."
-	echo "If monitoring device not specified, defaults to mon0."
+	shw_norm "If WiFi device not specified, defaults to wlan1."
+	shw_norm "If monitoring device not specified, defaults to mon0."
 	echo ""
+	shw_norm "If stuck waiting for the WiFi device to appear, try the 'ESCape' button to shutdown the program."
 
 }
 
 # Load my Uni Functions script for some functions to use.
 function load_uni_functions() {
-	# use my custom functions
-	
-	test_true=false
-	
-	source "uni_functions.sh" #2>/dev/null
-	if [ "$?" -eq 0 ]; then
-		test_true=true
-	fi
-	
-	if [ "$test_true" == false ]; then
-		uni_functions_path=$(./find_up.sh . -name "uni_functions.sh")
-		echo "UNI Functions Path: $uni_functions_path"
-		test_true=false
-		
-		source "$uni_functions_path" #2>/dev/null
-		if [ "$?" -eq 0 ]; then
-			test_true=true
+
+	# use my custom functions within UNI Functions
+	if [ "$unisystem_functions_online" == "false" ] || [ "$unisystem_functions_online" == "" ]; then
+		uni_functions_paths=$(./find_up.sh . -name "uni_functions.sh")
+		#echo "UNI Functions Path2: $uni_functions_paths"
+
+		test_true="false"
+		for test_paths in "$uni_functions_paths"
+		do
+			source "$test_paths" 2>/dev/null
+			if [ "$?" -eq 0 ]; then
+				test_true="true"
+				shw_grey "UNI Functions Loaded: $test_paths"
+				break
+			fi
+		done
+		if [ "$test_true" == "false" ]; then
+			shw_err "Could not locate, to source, the Uni System Functions file (uni_functions.sh)"
+			exit
 		fi
 	fi
-	
-	if [ "$test_true" = false ]; then
-		echo "Could not source the Uni System Functions (uni_functions.sh)"
-		exit
-	else
-		echo "UNI Functions Loaded"
-	fi
+
 }
 
 # Does all the legwork of making sure we can get the monitoring device setup
@@ -65,7 +66,7 @@ function setup_wifi_monitoring() {
 	ifconfig_var=$(loc_file "ifconfig")
 
 	# Wait for the specified WiFi device to appear. Sometimes a newly plugged in USB Wifi device will take a min to be available.
-	echo "Waiting for Wifi device: $wifi_device, to appear"
+	shw_warn "Waiting for Wifi device: $wifi_device, to appear"
 	$ifconfig_var $wifi_device >/dev/null 2>&1
 	device_found=$?
 	secs=120								# Duration to wait
@@ -77,10 +78,10 @@ function setup_wifi_monitoring() {
 		device_found=$?
 	done
 	if [ $device_found -eq 0 ]; then
-		echo "Device available for use."
+		shw_info "Device available for use."
 	else
 		echo " "
-		echo " Timed out waiting for device $wifi_device to appear."
+		shw_err " Timed out waiting for device $wifi_device to appear."
 		
 		exit 1
 	fi
@@ -107,7 +108,7 @@ function setup_wifi_monitoring() {
 	until [ "$goodexec" -eq 0 ]; do
 
 		if [ "$counter" -gt 5 ]; then
-			echo "Cannot get AirMon-NG to start "$wifi_device
+			shw_err "Cannot get AirMon-NG to start "$wifi_device
 			exit 57
 		fi
 
@@ -126,7 +127,7 @@ function setup_wifi_monitoring() {
 		fi
 		#echo ""
 		#echo "Captured Output: " $captured_output
-		echo "Detected Monitoring device: "$mon_device
+		shw_info "Detected Monitoring device: "$mon_device
 		#exit -1
 
 		counter=$((counter+1))
@@ -135,7 +136,7 @@ function setup_wifi_monitoring() {
 	done
 	# Report how  many times it took to start Airmon-ng
 	if [ "$counter" -gt 1 ]; then
-		echo "	It took airmon-ng $counter tries to start."
+		shw_warn "	It took airmon-ng $counter tries to start."
 	fi
 
 	# Turn wifi power on MAX
@@ -148,7 +149,10 @@ function setup_wifi_monitoring() {
 
 # Does all the legwork of making sure we can get the monitoring device setup
 function unsetup_wifi_monitoring() {
+
+	shw_grey "Unsetting monitoring device $mon_device"
 	$airmon_ng_var stop $mon_device >/dev/null 2>&1
+	shw_grey "Unsetting WiFi device $wifi_device"
 	$airmon_ng_var stop $wifi_device >/dev/null 2>&1
 
 	$ifconfig_var $wifi_device down >/dev/null 2>&1
@@ -161,14 +165,14 @@ function run_besside() {
 	# Capture handshakes...
 	# If the program besside-ng errors out with "wi_read() No such file or directory", try deleting the besside.log.
 	if [ "$crack_ssid" != "" ]; then
-		echo $(date)" Cracking "$crack_ssid" with BESSIDE"
+		shw_info $(date)" Cracking "$crack_ssid" with BESSIDE"
 		echo $(date)" Cracking "$crack_ssid" with BESSIDE" >> "$besside_log"
 		$besside_ng_var -b $crack_ssid $mon_device
 		besside_error_code=$?
 	else
-		echo $(date)" Cracking all with BESSIDE..."
+		shw_info $(date)" Cracking all with BESSIDE..."
 		echo $(date)" Cracking all with BESSIDE" >> "$besside_log"
-		$besside_ng_var $mon_device -v
+		$besside_ng_var $mon_device #-v
 		besside_error_code=$?
 	fi
 
@@ -184,11 +188,11 @@ fi
 
 # Run as root user
 if [ "$UID" -ne "0" ] ; then
-	echo "The programs require running as root."
+	shw_err "The programs require running as root."
 	display_help
 	exit 67
 else
-	echo "[$(date "+%F %T")] User id check successful"
+	shw_info "[$(date "+%F %T")] User id check successful"
 fi
 
 # Script Vars
@@ -198,7 +202,7 @@ else
 	wifi_device="wlan1"
 	#wifi_device="wlan0"
 fi
-echo "WiFi device set to: "$wifi_device
+shw_info "WiFi device set to: $wifi_device"
 
 if [ "$3" != "" ]; then
 	# Use argument specified for monitoring device
@@ -208,7 +212,7 @@ else
 	mon_device="mon0"
 	#wifi_device="wlan1"
 fi
-echo "Monitoring device set to: "$mon_device
+shw_info "Monitoring device set to: "$mon_device
 
 # Load my Uni Functions script for some functions to use.
 load_uni_functions
@@ -216,21 +220,29 @@ load_uni_functions
 cd_current_script_dir
 
 # find program locations and execute as needed
-echo "Looking for required file: besside-ng"
+shw_grey "Looking for required file: besside-ng"
 besside_ng_var=$(loc_file "besside-ng" "required")
 if [ $? -eq 1 ]; then
 	exit 1
 else
-	echo "BESSIDE: $besside_ng_var"
+	shw_norm "BESSIDE: $besside_ng_var"
 fi
 
-echo "Looking for required file: airmon-ng"
+shw_grey "Looking for required file: airmon-ng"
 airmon_ng_var=$(loc_file "airmon-ng" "required")
-echo "AIRMON: $airmon_ng_var"
+shw_norm "AIRMON: $airmon_ng_var"
 
-echo "Looking for required file: rfkill"
+shw_grey "Looking for required file: rfkill"
 rfkill_var=$(loc_file "rfkill" "required")
-echo "RFKILL: $rfkill_var"
+shw_norm "RFKILL: $rfkill_var"
+
+shw_grey "Looking for required file: rm"
+rm_command=$(loc_file "rm" "required")
+shw_norm "RM: $rm_command"
+
+shw_grey "Looking for required file: mv"
+mv_command=$(loc_file "mv" "required")
+shw_norm "MV: $mv_command"
 
 besside_error_code=-1
 exit_loop=false
@@ -239,8 +251,8 @@ until [ $besside_error_code -eq 0 ] || [ exit_loop == true ]; do
 
 	read -t 0 -r -s -n1 choice    # read single character in silent mode
 	if [[ "$choice" == $'\e' ]]; then 	# if input == ESC key
+		shw_warn "Exiting Loop"
 		exit_loop=true
-		echo "Exiting Loop"
 	fi
 
 	# Sets network wifi devices for monitoring
@@ -251,21 +263,21 @@ until [ $besside_error_code -eq 0 ] || [ exit_loop == true ]; do
 
 	besside_log=$uni_machine_name"_besside.log"
 	if [ ! -e "$besside_log" ]; then
-		echo "Created Log: $besside_log"
+		shw_grey "Created Log: $besside_log"
 		touch "$besside_log" 2>/dev/null
 	fi
 
 
 	# Move the .caps (from last run, if it errored out) to another directory for processing
-	./move_caps.sh
+	$mv_command -b --backup=t *.cap caps/ 2>/dev/null
 
 	# Run the function that will run besside to capture handshakes
 	run_besside
 
-
 	# If the besside exits with an error, start over.
 	# This is because the wifi device could have been pulled,
 	# or an error like wi_read()
+	# At the top of the loop it will wait for the specified WiFi device to come back.
 
 done
 
@@ -273,11 +285,16 @@ done
 unsetup_wifi_monitoring
 
 # Move the .caps to another directory for processing
-./move_caps.sh
+$mv_command -b --backup=t *.cap caps/ 2>/dev/null
 
-cd caps
+cd caps # Move here to process and execute the script for converting the .cap files.
 ./convert_caps_for_uploading.sh
+cd .. # Back to main script directory
 
-cd ..
+if [ "$?" -eq 0 ]; then
+	$rm_command -f besside.log
+	$rm_command -f "$besside_log"
+fi
+
 
 exit 0
