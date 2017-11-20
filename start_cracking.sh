@@ -16,16 +16,20 @@ source "echoColours.sh"
 # Test for help
 function display_help {
 	shw_info "Help:"
-	shw_norm $0" optional arguments,"
-	shw_norm $0" <besside id> to crack only or '' or nothing, to crack all. BESSIDE must contain the colon separators."
-	shw_norm $0" '' <WiFi Device> to use for monitoring."
-	shw_norm $0" '' <WiFi Device> <Monitoring Device> in case it does not detect the device for monitoring correctly."
+	shw_norm $0" <besside id> <WiFi Device> <Monitoring Device>"
+	shw_norm $0" <besside id> to crack only or '', to crack all. BESSIDE must contain the colon separators."
+	shw_norm $0" <WiFi Device> to use for monitoring."
+	shw_norm $0" <Monitoring Device> in case it does not detect the device for monitoring correctly."
 	echo ""
-	shw_norm "If WiFi device not specified, defaults to wlan1."
-	shw_norm "If monitoring device not specified, defaults to mon0."
+	shw_norm "If the WiFi device is not specified, it defaults to wlan1."
+	shw_norm "If the monitoring device is not specified, it defaults to mon0."
 	echo ""
+	shw_info "Notes:"
 	shw_norm "If stuck waiting for the WiFi device to appear, try the 'ESCape' button to shutdown the program."
-
+	echo ""
+	shw_norm "The wpa-sec.stanev.org module needs a key specified. Goto that website and sign up for it. Place a copy of the key in the top of the module file located in caps/upload/"
+	echo ""
+	
 }
 
 # Load my Uni Functions script for some functions to use.
@@ -147,7 +151,7 @@ function setup_wifi_monitoring() {
 	sleep 1
 }
 
-# Does all the legwork of making sure we can get the monitoring device setup
+# Does all the legwork of making sure we can get the monitoring device unsetup
 function unsetup_wifi_monitoring() {
 
 	shw_grey "Unsetting monitoring device $mon_device"
@@ -180,7 +184,7 @@ function run_besside() {
 }
 
 if [ "$1" != "" ]; then
-	if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then # || [ "$1" != "${1/:/}" ]
+	if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
 		display_help
 		exit
 	fi
