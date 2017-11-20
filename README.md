@@ -15,11 +15,11 @@ start_cracking.sh --help
 
       ./start_cracking.sh <besside id> <WiFi Device> <Monitoring Device> 
 
-      ./start_cracking.sh <besside id> to crack only or '', to crack all. BESSIDE must contain the colon separators. 
+      <besside id> to crack only or '', to crack all. BESSIDE must contain the colon separators. 
 
-      ./start_cracking.sh <WiFi Device> to use for monitoring. 
+      <WiFi Device> to use for monitoring. 
 
-      ./start_cracking.sh <Monitoring Device> in case it does not detect the device for monitoring correctly. 
+      <Monitoring Device> in case it does not detect the device for monitoring correctly. 
 
       If the WiFi device is not specified, it defaults to wlan1. 
 
