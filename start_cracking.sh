@@ -41,7 +41,7 @@ function load_uni_functions() {
 		#echo "UNI Functions Path2: $uni_functions_paths"
 
 		test_true="false"
-		for test_paths in "$uni_functions_paths"
+		for test_paths in ${uni_functions_paths}
 		do
 			source "$test_paths" 2>/dev/null
 			if [ "$?" -eq 0 ]; then
