@@ -403,11 +403,13 @@ function text2speech() {
 	mplayer_var=$(loc_file "mplayer" "/usr/local")
 	# if mplayer is not found(like in a server enviroment) exit the function.
 	# We should also set a flag variable allowing us to know to skip this function altogether in the first place, next time around.
-	add_to_cache_loc_file "mplayer" "$mplayer_var" # Add it the cache.
 
+	# Nothing found for mplayer
 	if [ "$mplayer_var" == "" ]; then
 		#exit -21
 		return
+	else
+		add_to_cache_loc_file "mplayer" "$mplayer_var" # Add it the cache.
 	fi
 
 	for key in "${!ary[@]}"

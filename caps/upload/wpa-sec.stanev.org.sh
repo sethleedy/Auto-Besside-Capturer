@@ -4,6 +4,11 @@
 if [ -e "upload/wpa-sec.stanev.org.key" ]; then
 	shw_grey "Using file key."
 	keyID=$(<upload/wpa-sec.stanev.org.key)
+
+	# If the key was empty, empty the string
+	if [ "$keyID" == " " ]; then
+		keyID=""
+	fi
 else
 	keyID=""
 fi

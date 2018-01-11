@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 clear
 
@@ -7,6 +7,7 @@ clear
 # Optional Argument 3 = Monitoring device to use
 
 # Some Vars
+declare -a avail_devices # Will hold the list of monitor mode wifi devices available to use. Run function create_wifi_devices_list() to populate.
 crack_ssid="$1"
 
 # Load some colour terminal functions
@@ -15,19 +16,26 @@ source "echoColours.sh"
 
 # Test for help
 function display_help {
+	# Get list created for display
+	create_wifi_devices_list
+
 	shw_info "Help:"
 	shw_norm $0" <besside id> <WiFi Device> <Monitoring Device>"
 	shw_norm " <besside id> to crack only or '', to crack all. BESSIDE must contain the colon separators."
 	shw_norm " <WiFi Device> to use for monitoring."
 	shw_norm " <Monitoring Device> in case it does not detect the device for monitoring correctly."
 	echo ""
-	shw_norm "If the WiFi device is not specified, it defaults to wlan1."
-	shw_norm "If the monitoring device is not specified, it defaults to mon0."
+	shw_norm "If the WiFi device is not specified, it defaults to the first auto detected WiFi device that contains Monitor mode."
+	shw_norm "If the monitoring device is not specified, it defaults to detected created device. Normally mon0."
+	echo ""
+	shw_norm "Detected ${#avail_devices[@]} WiFi devices available with monitor mode:"
+	shw_grey "${avail_devices[@]}"
 	echo ""
 	shw_info "Notes:"
 	shw_norm "If stuck waiting for the WiFi device to appear, try the 'ESCape' button to shutdown the program."
 	echo ""
-	shw_norm "The wpa-sec.stanev.org module needs a key specified. Goto that website and sign up for it. Place a copy of the key in the top of the module file located in caps/upload/"
+	shw_norm "The wpa-sec.stanev.org module needs a key specified. Goto that website and sign up for it."
+	shw_norm "	Place a copy of the key in a file with the name formatted as \"<websiteName>.key\" Eg: \"wpa-sec.stanev.org.key\", or in the top of the module file located in caps/upload/."
 	echo ""
 	
 }
@@ -41,7 +49,7 @@ function load_uni_functions() {
 		#echo "UNI Functions Path2: $uni_functions_paths"
 
 		test_true="false"
-		for test_paths in "$uni_functions_paths"
+		for test_paths in ${uni_functions_paths}
 		do
 			source "$test_paths" 2>/dev/null
 			if [ "$?" -eq 0 ]; then
@@ -58,6 +66,48 @@ function load_uni_functions() {
 
 }
 
+# Create a list of available wifi devices to work with.
+function create_wifi_devices_list() {
+
+	declare -a phys_devices_info
+	declare -a get_interface_devices
+	declare -a get_phy_devices
+
+	IFS=$'\n'
+	phys_devices_info=($(iw dev))
+	unset IFS
+
+	# Removes the anoyying hash symbol in the name. "phy#0" -> "phy0"
+	# Loop $wifi_devices
+	for i in "${phys_devices_info[@]}"; do
+	#echo "I: $i"
+		get_phy_devices+=($(echo -n "$i" | grep -i phy | cut -d "#" -f 1)$(echo -n "$i" | grep -i phy | cut -d "#" -f 2))
+	done
+	#echo ${get_phy_devices[@]}
+
+	# Loop each physical device for monitor mode
+	for i in "${get_phy_devices[@]}"; do
+		# If the device has monitor mode, add to list below
+		if [ $(iw phy $i info | grep -i monitor -c) -ge 1 ]; then
+			#echo "$i"
+			
+			# Recreate hash mark in phy
+			new_i=$(echo "$i" | cut -d "y" -f 1)"y#"$(echo "$i" | cut -d "y" -f 2)
+			
+			# If a wifi device with monitor mode, add to list of available devices array
+			avail_devices+=($(echo -n $(iw dev) | grep "$new_i" | grep -i interface | cut -d " " -f 3))
+		fi
+	done
+
+	# Erase arrays not in use
+	unset phys_devices_info
+	unset get_interface_devices
+	unset get_phy_devices
+
+	# Echo the list array
+	#echo ${avail_devices[@]}
+}
+
 # Does all the legwork of making sure we can get the monitoring device setup
 function setup_wifi_monitoring() {
 
@@ -70,6 +120,7 @@ function setup_wifi_monitoring() {
 	ifconfig_var=$(loc_file "ifconfig")
 
 	# Wait for the specified WiFi device to appear. Sometimes a newly plugged in USB Wifi device will take a min to be available.
+	echo " "
 	shw_warn "Waiting for Wifi device: $wifi_device, to appear"
 	$ifconfig_var $wifi_device >/dev/null 2>&1
 	device_found=$?
@@ -90,8 +141,10 @@ function setup_wifi_monitoring() {
 		exit 1
 	fi
 
-	$airmon_ng_var stop $mon_device
-	# $iwconfig_var $wifi_device mode managed
+	# If previously set and did not unset on shutdown or crash...
+	if [ "$mon_device" != "" ]; then # Could be auto detect, as in not specified on the command line. So this would be blank.
+		$airmon_ng_var stop $mon_device
+	fi
 
 	$ifconfig_var $wifi_device down
 
@@ -124,15 +177,18 @@ function setup_wifi_monitoring() {
 		#	var="(mac80211 monitor mode already enabled for [phy0]wlan1 on [phy0]wlan1)"
 		captured_output=$($airmon_ng_var start $wifi_device)
 		goodexec=$?
-		mon_device=$(echo $captured_output | awk -F"monitor mode enabled on " '{print $2}' | cut -d ")" -f 1)
-		# If the monitor mode is already enabled...
-		if [ "$mon_device" == "" ]; then
-			mon_device=$(echo $captured_output | awk -F"monitor mode already enabled for " '{print $2}' | cut -d "]" -f 3 | cut -d ")" -f 1)
+
+		# Monitoring device may already be set on the command line. If so, do not overwrite it here on the auto detection.
+		if [ "$mon_device" == "" ]; then # Nothing set on command line, so auto detect it.
+			mon_device=$(echo $captured_output | awk -F"monitor mode enabled on " '{print $2}' | cut -d ")" -f 1)
+			# If the monitor mode is already enabled...
+			if [ "$mon_device" == "" ]; then
+				mon_device=$(echo $captured_output | awk -F"monitor mode already enabled for " '{print $2}' | cut -d "]" -f 3 | cut -d ")" -f 1)
+			fi
+			#echo ""
+			#echo "Captured Output: " $captured_output
+			shw_info "Detected Monitoring device: "$mon_device
 		fi
-		#echo ""
-		#echo "Captured Output: " $captured_output
-		shw_info "Detected Monitoring device: "$mon_device
-		#exit -1
 
 		counter=$((counter+1))
 
@@ -169,11 +225,13 @@ function run_besside() {
 	# Capture handshakes...
 	# If the program besside-ng errors out with "wi_read() No such file or directory", try deleting the besside.log.
 	if [ "$crack_ssid" != "" ]; then
+
 		shw_info $(date)" Cracking "$crack_ssid" with BESSIDE"
 		echo $(date)" Cracking "$crack_ssid" with BESSIDE" >> "$besside_log"
 		$besside_ng_var -b $crack_ssid $mon_device
 		besside_error_code=$?
 	else
+
 		shw_info $(date)" Cracking all with BESSIDE..."
 		echo $(date)" Cracking all with BESSIDE" >> "$besside_log"
 		$besside_ng_var $mon_device #-v
@@ -183,6 +241,7 @@ function run_besside() {
 	return $besside_error_code
 }
 
+# Check startup arguments.
 if [ "$1" != "" ]; then
 	if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
 		display_help
@@ -192,31 +251,45 @@ fi
 
 # Run as root user
 if [ "$UID" -ne "0" ] ; then
+
 	shw_err "The programs require running as root."
 	display_help
 	exit 67
 else
+
 	shw_info "[$(date "+%F %T")] User id check successful"
 fi
 
 # Script Vars
 if [ "$2" != "" ]; then
-	wifi_device="$2"
+
+	wifi_device="$2" # If WiFi device was specified
 else
-	wifi_device="wlan1"
-	#wifi_device="wlan0"
+
+	# Look for available devices with monitor mode. Use the first one by default.
+	shw_grey "Looking for available devices with monitor mode..."
+	create_wifi_devices_list
+	if [ ${#avail_devices[@]} -ge 1 ]; then
+		shw_info "Using first detected available WiFi device."
+		wifi_device="${avail_devices[0]}"
+	else
+		shw_err "No WiFi devices detected that report monitor mode. Please specify the device or make sure the system detects it."
+		echo " "
+		exit 10
+	fi
 fi
 shw_info "WiFi device set to: $wifi_device"
 
 if [ "$3" != "" ]; then
+
 	# Use argument specified for monitoring device
-	mon_device="$3"
-else
-	# Go with defaults
-	mon_device="mon0"
-	#wifi_device="wlan1"
+	mon_device="$3" # If monitoring device was specified
+	shw_info "Monitoring device set to: "$mon_device
+
+#else
+
+	# Go with default auto detect within the function setup_wifi_monitoring()
 fi
-shw_info "Monitoring device set to: "$mon_device
 
 # Load my Uni Functions script for some functions to use.
 load_uni_functions
@@ -224,29 +297,29 @@ load_uni_functions
 cd_current_script_dir
 
 # find program locations and execute as needed
-shw_grey "Looking for required file: besside-ng"
+shw_info "Looking for required file: besside-ng"
 besside_ng_var=$(loc_file "besside-ng" "required")
 if [ $? -eq 1 ]; then
 	exit 1
 else
-	shw_norm "BESSIDE: $besside_ng_var"
+	shw_grey "BESSIDE: $besside_ng_var"
 fi
 
-shw_grey "Looking for required file: airmon-ng"
+shw_info "Looking for required file: airmon-ng"
 airmon_ng_var=$(loc_file "airmon-ng" "required")
-shw_norm "AIRMON: $airmon_ng_var"
+shw_grey "AIRMON: $airmon_ng_var"
 
-shw_grey "Looking for required file: rfkill"
+shw_info "Looking for required file: rfkill"
 rfkill_var=$(loc_file "rfkill" "required")
-shw_norm "RFKILL: $rfkill_var"
+shw_grey "RFKILL: $rfkill_var"
 
-shw_grey "Looking for required file: rm"
+shw_info "Looking for required file: rm"
 rm_command=$(loc_file "rm" "required")
-shw_norm "RM: $rm_command"
+shw_grey "RM: $rm_command"
 
-shw_grey "Looking for required file: mv"
+shw_info "Looking for required file: mv"
 mv_command=$(loc_file "mv" "required")
-shw_norm "MV: $mv_command"
+shw_grey "MV: $mv_command"
 
 besside_error_code=-1
 exit_loop=false
