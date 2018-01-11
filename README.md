@@ -11,6 +11,7 @@ To start, use either "start_cracking.sh" or "start_with_screen.sh"
 ----
 
 Help:
+
 	./start_cracking.sh <besside id> <WiFi Device> <Monitoring Device> 
 	<besside id> to crack only or '', to crack all. BESSIDE must contain the colon separators. 
 	<WiFi Device> to use for monitoring. 
