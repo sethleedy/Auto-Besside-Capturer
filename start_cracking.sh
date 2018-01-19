@@ -300,6 +300,8 @@ cd_current_script_dir
 shw_info "Looking for required file: besside-ng"
 besside_ng_var=$(loc_file "besside-ng" "required")
 if [ $? -eq 1 ]; then
+	shw_err "Could not locate the program besside-ng"
+	echo " "
 	exit 1
 else
 	shw_grey "BESSIDE: $besside_ng_var"
