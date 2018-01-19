@@ -26,7 +26,7 @@ function display_help {
 	shw_norm " <Monitoring Device> in case it does not detect the device for monitoring correctly."
 	echo ""
 	shw_norm "If the WiFi device is not specified, it defaults to the first auto detected WiFi device that contains Monitor mode."
-	shw_norm "If the monitoring device is not specified, it defaults to detected created device. Normally mon0."
+	shw_norm "If the Monitoring device is not specified, it defaults to a detected created device, normally mon0."
 	echo ""
 	shw_norm "Detected ${#avail_devices[@]} WiFi devices available with monitor mode:"
 	shw_grey "${avail_devices[@]}"
