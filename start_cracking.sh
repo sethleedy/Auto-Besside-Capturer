@@ -26,7 +26,7 @@ function display_help {
 	shw_norm " <Monitoring Device> in case it does not detect the device for monitoring correctly."
 	echo ""
 	shw_norm "If the WiFi device is not specified, it defaults to the first auto detected WiFi device that contains Monitor mode."
-	shw_norm "If the monitoring device is not specified, it defaults to detected created device. Normally mon0."
+	shw_norm "If the Monitoring device is not specified, it defaults to a detected created device, normally mon0."
 	echo ""
 	shw_norm "Detected ${#avail_devices[@]} WiFi devices available with monitor mode:"
 	shw_grey "${avail_devices[@]}"
@@ -37,6 +37,8 @@ function display_help {
 	shw_norm "The wpa-sec.stanev.org module needs a key specified. Goto that website and sign up for it."
 	shw_norm "	Place a copy of the key in a file with the name formatted as \"<websiteName>.key\" Eg: \"wpa-sec.stanev.org.key\", or in the top of the module file located in caps/upload/."
 	echo ""
+	shw_norm "Requirements:"
+	shw_norm "besside-ng from aircrack-ng, rfkill, macchanger, ifconfig & iwconfig(to change), airmon-ng."
 	
 }
 
@@ -300,6 +302,8 @@ cd_current_script_dir
 shw_info "Looking for required file: besside-ng"
 besside_ng_var=$(loc_file "besside-ng" "required")
 if [ $? -eq 1 ]; then
+	shw_err "Could not locate the program besside-ng"
+	echo " "
 	exit 1
 else
 	shw_grey "BESSIDE: $besside_ng_var"

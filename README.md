@@ -18,10 +18,7 @@ Help:
 	<Monitoring Device> in case it does not detect the device for monitoring correctly. 
 
 	If the WiFi device is not specified, it defaults to the first auto detected WiFi device that contains Monitor mode. 
-	If the monitoring device is not specified, it defaults to detected created device. Normally mon0. 
-
-	Detected 0 WiFi devices available with monitor mode: 
-
+	If the Monitoring device is not specified, it defaults to a detected created device, normally mon0. 
 
 	Notes: 
 	If stuck waiting for the WiFi device to appear, try the 'ESCape' button to shutdown the program. 
@@ -29,4 +26,6 @@ Help:
 	The wpa-sec.stanev.org module needs a key specified. Goto that website and sign up for it. 
 	Place a copy of the key in a file with the name formatted as "<websiteName>.key" Eg: "wpa-sec.stanev.org.key", or in the top of the module file located in caps/upload/. 
 
+	Requirements:
+	besside-ng from aircrack-ng, rfkill, macchanger, ifconfig & iwconfig(to change), airmon-ng.
 
