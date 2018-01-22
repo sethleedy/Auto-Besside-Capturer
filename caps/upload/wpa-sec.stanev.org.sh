@@ -45,7 +45,7 @@ function start_exec() {
 
 		return 0
 	else
-		shw_err "No upload key specified in the file $0. Unable to upload."
+		shw_err "No upload key specified for module "wpa-sec.stanev.org", in the file $0. Unable to upload."
 
 		return 2
 	fi
