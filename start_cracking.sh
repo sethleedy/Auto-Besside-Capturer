@@ -88,18 +88,25 @@ function create_wifi_devices_list() {
 	#echo ${get_phy_devices[@]}
 
 	# Loop each physical device for monitor mode
-	for i in "${get_phy_devices[@]}"; do
-		# If the device has monitor mode, add to list below
-		if [ $(iw phy $i info | grep -i monitor -c) -ge 1 ]; then
-			#echo "$i"
-			
-			# Recreate hash mark in phy
-			new_i=$(echo "$i" | cut -d "y" -f 1)"y#"$(echo "$i" | cut -d "y" -f 2)
-			
-			# If a wifi device with monitor mode, add to list of available devices array
-			avail_devices+=($(echo -n $(iw dev) | grep "$new_i" | grep -i interface | cut -d " " -f 3))
-		fi
-	done
+        for i in "${get_phy_devices[@]}"; do
+                # If the device has monitor mode, add to list below
+                if [ $(iw phy $i info | grep -i monitor -c) -ge 1 ]; then
+                        #echo "Mon mode: $i"
+
+                        # Recreate hash mark in phy
+                        new_i=$(echo "$i" | cut -d "y" -f 1)"y#"$(echo "$i" | cut -d "y" -f 2)
+                        #echo "New i: $new_i"
+
+                        # Get the count within the $new_i variable and use it to pull a cut below
+                        count_for_cut=$(echo "$new_i" | cut -d "#" -f 2)
+                        count_for_cut=$(($count_for_cut + 2))
+
+                        # If a wifi device with monitor mode, add to list of available devices array
+                        dev_result=$(echo -n $(iw dev) | cut -d "#" -f $count_for_cut | cut -d " " -f 3)
+                        avail_devices+=("$dev_result")
+                        #echo -n $(iw dev) | cut -d "#" -f $count_for_cut | cut -d " " -f 3
+                fi
+        done
 
 	# Erase arrays not in use
 	unset phys_devices_info
