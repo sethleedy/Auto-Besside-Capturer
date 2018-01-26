@@ -68,7 +68,7 @@ function load_uni_functions() {
 
 }
 
-# Create a list of available wifi devices to work with.
+# Create a list of available wifi devices, with monitor mode, to work with.
 function create_wifi_devices_list() {
 
 	declare -a phys_devices_info
@@ -88,18 +88,21 @@ function create_wifi_devices_list() {
 	#echo ${get_phy_devices[@]}
 
 	# Loop each physical device for monitor mode
-	for i in "${get_phy_devices[@]}"; do
-		# If the device has monitor mode, add to list below
-		if [ $(iw phy $i info | grep -i monitor -c) -ge 1 ]; then
-			#echo "$i"
-			
-			# Recreate hash mark in phy
-			new_i=$(echo "$i" | cut -d "y" -f 1)"y#"$(echo "$i" | cut -d "y" -f 2)
-			
-			# If a wifi device with monitor mode, add to list of available devices array
-			avail_devices+=($(echo -n $(iw dev) | grep "$new_i" | grep -i interface | cut -d " " -f 3))
-		fi
-	done
+        for i in "${get_phy_devices[@]}"; do
+                # If the device has monitor mode, add to list below
+                if [ $(iw phy $i info | grep -i monitor -c) -ge 1 ]; then
+                        #echo "Mon mode: $i"
+
+                        # Recreate hash mark in phy
+                        new_i=$(echo "$i" | cut -d "y" -f 1)"y#"$(echo "$i" | cut -d "y" -f 2)
+                        #echo "New i: $new_i"
+
+                        # If a wifi device with monitor mode, add to list of available devices array
+						# RegEx: Select from 'phy#'' from $new_i variable to another 'phy#' OR end of line.
+                        dev_result=$(echo -n $(iw dev) | grep -oP $new_i'((?:(?!phy#).)*)' | cut -d " " -f 3)
+                        avail_devices+=("$dev_result")
+                fi
+        done
 
 	# Erase arrays not in use
 	unset phys_devices_info
@@ -177,6 +180,9 @@ function setup_wifi_monitoring() {
 		#	Old code: $airmon_ng_var start $wifi_device
 		# Looking to parse this for the monitoring interface. It's not always mon0...
 		#	var="(mac80211 monitor mode already enabled for [phy0]wlan1 on [phy0]wlan1)"
+		# Goofy wifi driver ALERT!
+		#	I have found out the some wifi drivers will NOT create a monitoring device(Eg: mon0). Instead it will be the WiFi device itself. However!, it will show on the line above that needs parsed an entry of [phy0]wlan1 on [phy0]10)
+		#	So, I'm hard coding at the moment, if the detected monitoring device is not listed on a subsequent device list, revert to the WiFi device as the monitoring device.
 		captured_output=$($airmon_ng_var start $wifi_device)
 		goodexec=$?
 
@@ -187,9 +193,23 @@ function setup_wifi_monitoring() {
 			if [ "$mon_device" == "" ]; then
 				mon_device=$(echo $captured_output | awk -F"monitor mode already enabled for " '{print $2}' | cut -d "]" -f 3 | cut -d ")" -f 1)
 			fi
-			#echo ""
-			#echo "Captured Output: " $captured_output
-			shw_info "Detected Monitoring device: "$mon_device
+			
+			# Check for monitoring device after creation. If missing, assume it is the WiFi device itself.
+			# First clear the contents of the array
+			unset avail_devices
+			# Then call the function to populate it with a list of wifi devices.
+			create_wifi_devices_list
+			# Now compare out mon_device to the contents in the new list within the array avail_devices
+			dcheck=$(item_in_array "$mon_device" "${avail_devices[@]}")
+			if [[ "$dcheck" -eq "0" ]]; then
+				mon_device="$wifi_device"
+				shw_warn "Using WiFi device: $wifi_device, as Monitoring device: $mon_device."
+			else
+				#echo ""
+				#echo "Captured Output: " $captured_output
+				shw_info "Detected Monitoring device: "$mon_device
+			fi
+
 		fi
 
 		counter=$((counter+1))
