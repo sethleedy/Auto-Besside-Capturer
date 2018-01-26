@@ -30,7 +30,7 @@ function fn_exists() {
 # checks to see if the needle exists in the cache_arr
 # @param $1 mixed  Needle
 # @return  Success (0) if value exists, Failure (1) otherwise
-function in_array() {
+function in_cache_arr() {
 	needle="$1"
 
 	for hay in "${!cache_arr[@]}"; do
@@ -46,6 +46,18 @@ function in_array() {
 	return 1
 }
 
+# Generic function to look for an item in a passed array.
+# item_in_array "$item", "${array[@]}"
+# Returns 0 in good
+function item_in_array() {
+	local e match="$1"
+
+	shift
+	for e; do [[ "$e" == "$match" ]] && return 0; done
+
+	return 1
+}
+
 # Loads cache from disk if it has not been loaded yet. Runs once per program start.
 # Add_to_cache_loc_file will keep it up to date on disk.
 function load_loc_cache_from_disk() {
@@ -57,13 +69,6 @@ function load_loc_cache_from_disk() {
 	if [ -f .loc_cache.txt ] && [ -s .loc_cache.txt ]; then
 		declare -Ag cache_arr
 		source ".loc_cache.txt"
-
-		# Check contents with a builtin lookup of the key "uni_sqlite_db_functions.sh". It should be blank.
-		if [ "${cache_arr[uni_sqlite_db_functions.sh]}" == "" ]; then
-			echo "Error finding an item in the loc cache. Cache may have not loaded correctly."
-		#else
-			#echo "Cache Loaded"
-		fi
 
 		cache_loaded_from_disk="true"
 	fi
@@ -129,7 +134,7 @@ function check_loc_file_cache() {
 
 	# Search array for the filename and pull it into the path. Else, do a search.
 	# If the cache_arr says the entry has expired, do a search. function add_to_cache_loc_file will update whatever is found, as it is what is called right after the function loc_file.
-	in_array "$filename"
+	in_cache_arr "$filename"
 
 	if [ $? -eq 0 ]; then
 		echo "true"
@@ -165,7 +170,7 @@ function loc_file() {
 	declare -i curr_expire_date;curr_expire_date=$(date +%s)
 	expire_key=$file_name"_expire"
 	declare -i check_expire;check_expire=${cache_arr[$expire_key]}
-	in_array "$file_name"
+	in_cache_arr "$file_name"
 	if [ $? -eq 0 ]; then
 		if [ "$curr_expire_date" -lt "$check_expire" ]; then
 			loc_file_return=${cache_arr[$file_name]}
