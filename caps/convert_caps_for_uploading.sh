@@ -12,8 +12,8 @@
 
 
 # User:Group to chown the .cap files as. Don't want to keep them root.
-chUser="seth"
-chGroup="seth"
+#chUser="seth"
+#chGroup="seth"
 
 # Load echoColours for pretty output
 source "../echoColours.sh"
@@ -47,6 +47,8 @@ function do_conversion() {
 function do_upload() {
 
 	# Insert code here to upload to a website.
+
+	shw_grey "Starting Upload function"
 
 	# If we encounter an upload error in the modules(like wpa-sec.stan.org.sh), then do not delete the .cap files to upload
 	upload_error=false
@@ -122,19 +124,25 @@ if [ "$besside_file" == "" ]; then
 fi
 
 if [ "$besside_file" != "" ]; then
-	# Do existing .cap files first
+	# Do existing .cap files first in the caps directory
 	#if ls *.cap & > /dev/null; then
 	if [[ -n $(shopt -s nullglob; echo *.cap) ]]; then # explain this line ??
 
 		# Then convert
 		do_conversion
-
+	fi
+	# Do any .cap files waiting in the upload directory
+	if [[ -n $(shopt -s nullglob; echo upload/*.cap) ]]; the
 		# After conversion, auto upload to website via the scripts within the upload directory
 		do_upload
 
-		# Make sure all these newly created files are not root owned.
+		# Make sure all these newly created files are not root owned. Ownership should be same as the script.
+		# This allows the script to upload the files at a later time when Internet is available.
+		# Get owner:group
+		echo "User/Group: $0"
+		chUser=$(ls -l "$0" | cut -d " " -f 3)
+		chGroup=$(ls -l "$0" | cut -d " " -f 4)
 		chown -R $chUser:$chGroup *
-
 	fi
 
 	if [ "$1" == "--watch" ]; then
@@ -152,6 +160,8 @@ if [ "$besside_file" != "" ]; then
 					do_upload
 
 					# Make sure all these newly created files are not root owned.
+					chUser=$(ls -l "$0" | cut -d " " -f 3)
+					chGroup=$(ls -l "$0" | cut -d " " -f 4)
 					chown -R $chUser:$chGroup *
 
 					# Notify the user about this
